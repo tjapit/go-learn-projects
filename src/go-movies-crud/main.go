@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -34,22 +36,58 @@ func deleteMovie(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	// get request parameters using gorilla/mux
 	params := mux.Vars(r)
-	for i, item := range movies {
-		if item.ID == params["id"] {
+	for i, movie := range movies {
+		if movie.ID == params["id"] {
 			// removing an item with append
 			movies = append(movies[:i], movies[i+1:]...)
 			break
 		}
 	}
+	json.NewEncoder(w).Encode(movies)
 }
 
 func getMovie(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	for _, item := range movies {
-		if item.ID == params["id"] {
-			json.NewEncoder(w).Encode(item)
+	for _, movie := range movies {
+		if movie.ID == params["id"] {
+			json.NewEncoder(w).Encode(movie)
 			break
+		}
+	}
+}
+
+func createMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var movie Movie
+	// decode the body of the request
+	json.NewDecoder(r.Body).Decode(&movie)
+	// generate random ID
+	movie.ID = strconv.Itoa(rand.Intn(1e9))
+	// add to "DB"
+	movies = append(movies, movie)
+	json.NewEncoder(w).Encode(movie)
+}
+
+func updateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r)
+	// placeholder for new data
+	var updatedMovie Movie
+	// get the new data from decoded request body
+	json.NewDecoder(r.Body).Decode(&updatedMovie)
+	for i, movie := range movies {
+		if movie.ID == params["id"] {
+			// update the params of the movie
+			movie.ISBN = updatedMovie.ISBN
+			movie.Title = updatedMovie.Title
+			movie.Director = updatedMovie.Director
+			// update the movie in the "DB"
+			movies = append(movies[:i], movies[i+1:]...)
+			movies = append(movies, movie)
+			// return the updated movie
+			json.NewEncoder(w).Encode(movie)
+			return
 		}
 	}
 }
